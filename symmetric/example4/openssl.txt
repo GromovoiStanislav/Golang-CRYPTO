@@ -1,0 +1,1 @@
+openssl rand -out symmetric_key.bin 32
