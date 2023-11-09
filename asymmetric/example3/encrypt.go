@@ -7,12 +7,10 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
-
 )
 
 func main() {
-	// Пути к файлам с открытым и закрытым ключами
-	//publicKeyPath := "public_key.pem"
+	// Путь к файлу с закрытым ключом
 	privateKeyPath := "private_key.pem"
 
 	// Загрузка закрытого ключа из файла
@@ -24,13 +22,21 @@ func main() {
 
 	// Преобразование закрытого ключа в структуру rsa.PrivateKey
 	privateKeyBlock, _ := pem.Decode(privateKeyBytes)
-	if privateKeyBlock == nil || privateKeyBlock.Type != "RSA PRIVATE KEY" {
-		fmt.Println("Неверный формат закрытого ключа")
+	if privateKeyBlock == nil {
+		fmt.Println("Не удалось декодировать закрытый ключ")
 		return
 	}
-	privateKey, err := x509.ParsePKCS1PrivateKey(privateKeyBlock.Bytes)
+
+	privateKey, err := x509.ParsePKCS8PrivateKey(privateKeyBlock.Bytes)
 	if err != nil {
 		fmt.Println("Ошибка при парсинге закрытого ключа:", err)
+		return
+	}
+
+	// Приведение закрытого ключа к типу *rsa.PrivateKey
+	rsaPrivateKey, ok := privateKey.(*rsa.PrivateKey)
+	if !ok {
+		fmt.Println("Ошибка при приведении закрытого ключа к типу *rsa.PrivateKey")
 		return
 	}
 
@@ -38,7 +44,7 @@ func main() {
 	message := []byte("Это сообщение, которое мы хотим зашифровать.")
 
 	// Шифрование сообщения
-	encryptedMessage, err := rsa.EncryptPKCS1v15(rand.Reader, &privateKey.PublicKey, message)
+	encryptedMessage, err := rsa.EncryptPKCS1v15(rand.Reader, &rsaPrivateKey.PublicKey, message)
 	if err != nil {
 		fmt.Println("Ошибка при шифровании сообщения:", err)
 		return

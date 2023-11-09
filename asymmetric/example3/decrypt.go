@@ -19,15 +19,22 @@ func main() {
 
 	// Декодирование закрытого ключа
 	block, _ := pem.Decode(privateKeyBytes)
-	if block == nil || block.Type != "RSA PRIVATE KEY" {
-		fmt.Println("Некорректный формат закрытого ключа")
+	if block == nil {
+		fmt.Println("Не удалось декодировать закрытый ключ")
 		return
 	}
 
 	// Преобразование закрытого ключа
-	privateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	privateKey, err := x509.ParsePKCS8PrivateKey(block.Bytes)
 	if err != nil {
 		fmt.Println("Ошибка при преобразовании закрытого ключа:", err)
+		return
+	}
+
+	// Проверка, является ли закрытый ключ типом *rsa.PrivateKey
+	rsaPrivateKey, ok := privateKey.(*rsa.PrivateKey)
+	if !ok {
+		fmt.Println("Ошибка при приведении закрытого ключа к типу *rsa.PrivateKey")
 		return
 	}
 
@@ -39,7 +46,7 @@ func main() {
 	}
 
 	// Дешифрование сообщения
-	decryptedMessage, err := rsa.DecryptPKCS1v15(rand.Reader, privateKey, encryptedMessage)
+	decryptedMessage, err := rsa.DecryptPKCS1v15(rand.Reader, rsaPrivateKey, encryptedMessage)
 	if err != nil {
 		fmt.Println("Ошибка при дешифровании сообщения:", err)
 		return

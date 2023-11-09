@@ -6,8 +6,9 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
+	"os"
 )
+
 
 func main() {
 	// Генерация пары асимметричных ключей
@@ -29,29 +30,58 @@ func main() {
 
 // Сохранение закрытого ключа в файл
 func savePrivateKeyToFile(filename string, privateKey *rsa.PrivateKey) {
-	privASN1 := x509.MarshalPKCS1PrivateKey(privateKey)
-	privPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: privASN1})
-
-	err := ioutil.WriteFile(filename, privPEM, 0644)
+	privateKeyFile, err := os.Create("private_key.pem")
 	if err != nil {
-		fmt.Println("Ошибка при сохранении закрытого ключа в файл:", err)
+		fmt.Println("Ошибка при создании файла для закрытого ключа:", err)
 		return
 	}
+	defer privateKeyFile.Close()
+
+	privateKeyBytes, err := x509.MarshalPKCS8PrivateKey(privateKey)
+	if err != nil {
+		fmt.Println("Ошибка при маршалинге закрытого ключа:", err)
+		return
+	}
+
+	privateKeyBlock := &pem.Block{
+		Type:  "PRIVATE KEY",
+		Bytes: privateKeyBytes,
+	}
+
+	err = pem.Encode(privateKeyFile, privateKeyBlock)
+	if err != nil {
+		fmt.Println("Ошибка при записи закрытого ключа в файл:", err)
+		return
+	}
+
+	fmt.Println("Закрытый ключ успешно сохранен в файле private_key.pem.")
 }
 
 // Сохранение открытого ключа в файл
 func savePublicKeyToFile(filename string, publicKey *rsa.PublicKey) {
-	pubASN1, err := x509.MarshalPKIXPublicKey(publicKey)
+	publicKeyFile, err := os.Create("public_key.pem")
 	if err != nil {
-		fmt.Println("Ошибка при сохранении открытого ключа:", err)
+		fmt.Println("Ошибка при создании файла для открытого ключа:", err)
+		return
+	}
+	defer publicKeyFile.Close()
+
+	publicKeyBytes, err := x509.MarshalPKIXPublicKey(publicKey)
+	if err != nil {
+		fmt.Println("Ошибка при маршалинге открытого ключа:", err)
 		return
 	}
 
-	pubPEM := pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: pubASN1})
+	publicKeyBlock := &pem.Block{
+		Type:  "PUBLIC KEY",
+		Bytes: publicKeyBytes,
+	}
 
-	err = ioutil.WriteFile(filename, pubPEM, 0644)
+	err = pem.Encode(publicKeyFile, publicKeyBlock)
 	if err != nil {
-		fmt.Println("Ошибка при сохранении открытого ключа в файл:", err)
+		fmt.Println("Ошибка при записи открытого ключа в файл:", err)
 		return
 	}
+
+	fmt.Println("Открытый ключ успешно сохранен в файле public_key.pem.")
 }
